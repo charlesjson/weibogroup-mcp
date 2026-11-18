@@ -1,4 +1,4 @@
-// Run against a built checkout of charlesjson/dsh-weibogroup v0.6.3.
+// Run against a built checkout of charlesjson/dsh-weibogroup v0.6.4.
 import descriptions from './tool-descriptions.json' with { type: 'json' }
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'

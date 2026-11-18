@@ -15,7 +15,7 @@ test('the release executable discovers and calls tools through stdio', async t =
   const exportDir = join(dir, 'downloads')
   const token = 'wg_ai_' + 'x'.repeat(43)
   const id = '12345678-1234-4234-8234-123456789abc'
-  const bytes = Buffer.from('name,value\nexample,1\n')
+  let bytes = Buffer.from('name,value\nexample,1\n')
   const image = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jS1kAAAAASUVORK5CYII=', 'base64')
   const hash = data => createHash('sha256').update(data).digest('hex')
   const key = { accountId: 'a', groupId: 'g', messageId: 'm', assetType: 'image', assetKey: 'asset' }
@@ -44,7 +44,7 @@ test('the release executable discovers and calls tools through stdio', async t =
     if (path === '/api/v1/exports/' + id)
       return res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ job }))
     if (path === '/api/v1/exports/' + id + '/download') {
-      res.writeHead(200, { 'content-type': 'text/csv' })
+      res.writeHead(200, { 'content-type': job.contentType })
       res.write(bytes.subarray(0, 2))
       return res.end(shortDownload ? undefined : bytes.subarray(2))
     }
@@ -62,9 +62,12 @@ test('the release executable discovers and calls tools through stdio', async t =
     env: { WEIBOGROUP_CONNECTION_FILE: connection, WEIBOGROUP_EXPORT_DIR: exportDir },
   }))
   const { tools } = await client.listTools()
-  assert.equal(new Set(tools.map(tool => tool.name)).size, 46)
+  assert.equal(new Set(tools.map(tool => tool.name)).size, 45)
   assert.ok(tools.every(tool => tool.name.startsWith('weibo_')))
   assert.ok(!tools.some(tool => /sendGroup|recallGroup/.test(tool.name)))
+  assert.ok(!tools.some(tool => tool.name === 'weibo_getWordCloud'))
+  const createUser = tools.find(tool => tool.name === 'weibo_createUserExport')
+  assert.deepEqual(createUser.inputSchema.properties.format.enum, ['zip'])
   const call = (name, args = {}) => client.callTool({ name: 'weibo_' + name, arguments: args })
   assert.equal((await call('listAccounts')).isError, true)
   await writeFile(connection, JSON.stringify({ baseUrl: 'http://127.0.0.1:' + api.address().port, apiToken: token }), { mode: 0o600 })
@@ -72,6 +75,7 @@ test('the release executable discovers and calls tools through stdio', async t =
   assert.equal((await call('searchMessages', { limit: 21 })).isError, true)
   assert.equal((await call('downloadExport', { id: '../bad' })).isError, true)
   assert.equal((await call('readMessageImage', {})).isError, true)
+  assert.equal((await call('createUserExport', { accountId: 'a', groupId: 'g', senderUid: '123', format: 'pdf' })).isError, true)
   assert.deepEqual(requests, ['/api/v1/accounts'])
   const picture = await call('readMessageImage', key)
   assert.deepEqual(picture.content[1], { type: 'image', mimeType: 'image/png', data: image.toString('base64') })
@@ -79,6 +83,12 @@ test('the release executable discovers and calls tools through stdio', async t =
   assert.deepEqual(await readFile(file.path), bytes)
   assert.ok(file.path.startsWith(join(exportDir, 'export-')))
   assert.equal(file.coverage.messageCount, 1)
+  const legacyBytes = Buffer.from('%PDF-1.4\nfixture')
+  Object.assign(job, { kind: 'user', format: 'pdf', filename: 'legacy.pdf', contentType: 'application/pdf', size: legacyBytes.length })
+  bytes = legacyBytes
+  const legacy = (await call('downloadExport', { id })).structuredContent
+  assert.equal(legacy.filename, 'legacy.pdf')
+  assert.deepEqual(await readFile(legacy.path), legacyBytes)
   const previous = await readdir(exportDir)
   shortDownload = true
   assert.equal((await call('downloadExport', { id })).isError, true)

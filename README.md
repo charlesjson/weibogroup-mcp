@@ -1,6 +1,6 @@
 # WeiboGroup MCP
 
-用 Go 编写的本地 stdio MCP 服务，可接入 LM Studio、DeepSeek Harness 和其他支持 stdio 的客户端。它使用微博群聊归档后台的 AI API，提供与 dsh-weibogroup v0.6.3 对应的 46 个工具。
+用 Go 编写的本地 stdio MCP 服务，可接入 LM Studio、DeepSeek Harness 和其他支持 stdio 的客户端。它使用微博群聊归档后台的 AI API，提供与 dsh-weibogroup v0.6.4 对应的 45 个工具。
 
 ## 下载
 
@@ -59,7 +59,7 @@ weibogroup-mcp --api-endpoint 'https://archive.example.com/api/v1' --api-key "$A
 先将二进制放入 **DSH 进程的 PATH**，预备好上述连接文件，然后安装此仓库提供的插件配置并重启对应 profile。
 
 ```sh
-dsh plugin --profile web add github:charlesjson/weibogroup-mcp#v0.1.1
+dsh plugin --profile web add github:charlesjson/weibogroup-mcp#v0.1.2
 ```
 
 也可以在 DSH 的 MCP 设置中新增 stdio 服务，将 command 设为二进制的绝对路径，serverName 设为 weibogroup。桌面应用的 PATH 可能与终端不同。DSH 工具显示为 `mcp__weibogroup__weibo_listGroups` 等名称。
@@ -68,7 +68,7 @@ dsh plugin --profile web add github:charlesjson/weibogroup-mcp#v0.1.1
 
 - 账号、群和成员发现，历史消息搜索、上下文、时间线、关键词与发言统计。消息页默认 10 条，最多 20 条和 24,000 字节。搜索续用 nextCursor，上下文续用 nextPageCursor，窗口续用 pagination.continuation。
 - 图片工具接收消息中的资源标识，校验绑定和 SHA-256 后返回 MCP 图片内容。图片上限 20 MiB，需要客户端和模型支持图片输入。
-- 导出工具复用后台 CSV、XLSX、JSON、PDF 或 ZIP 任务。任务 ready 后调用 weibo_downloadExport，文件默认保存到 ~/Downloads/weibogroup 下的独立目录。可用 WEIBOGROUP_EXPORT_DIR 指定目录。返回值含绝对路径、字节数和覆盖信息，单文件上限 64 MiB。
+- 导出工具复用后台消息导出（CSV、XLSX、JSON）和个人阅读版导出（Markdown+图片 ZIP）。历史 PDF 任务在有效期内仍可查询和下载。任务 ready 后调用 weibo_downloadExport，文件默认保存到 ~/Downloads/weibogroup 下的独立目录。可用 WEIBOGROUP_EXPORT_DIR 指定目录。返回值含绝对路径、字节数和覆盖信息，单文件上限 64 MiB。
 - 监控规则、命中记录、通知投递和诊断，以及历史采集任务的创建、暂停、恢复、取消和重试。可用权限以当前 Token 为准。
 
 ## 从源码构建
