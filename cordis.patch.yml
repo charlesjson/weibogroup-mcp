@@ -1,0 +1,8 @@
+- insert:
+    - id: weibogroup-mcp
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: weibogroup
+        transport: stdio
+        command: weibogroup-mcp
+        toolCallTimeoutMs: 150000

@@ -1,0 +1,29 @@
+{
+  "name": "weibogroup-mcp",
+  "version": "0.1.0",
+  "description": "Standalone stdio MCP server for WeiboGroup archives",
+  "private": true,
+  "type": "module",
+  "license": "ISC",
+  "repository": "github:charlesjson/weibogroup-mcp",
+  "files": [
+    "cordis.patch.yml",
+    "LICENSE",
+    "README.md"
+  ],
+  "engines": {
+    "dsh": ">=0.2.2-rc.2"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "build": "go build -trimpath -ldflags=\"-s -w\" -o dist/weibogroup-mcp .",
+    "test": "npm run build && node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0"
+  }
+}
