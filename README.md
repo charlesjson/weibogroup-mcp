@@ -59,7 +59,7 @@ weibogroup-mcp --api-endpoint 'https://archive.example.com/api/v1' --api-key "$A
 先将二进制放入 **DSH 进程的 PATH**，预备好上述连接文件，然后安装此仓库提供的插件配置并重启对应 profile。
 
 ```sh
-dsh plugin --profile web add github:charlesjson/weibogroup-mcp#v0.1.0
+dsh plugin --profile web add github:charlesjson/weibogroup-mcp#v0.1.1
 ```
 
 也可以在 DSH 的 MCP 设置中新增 stdio 服务，将 command 设为二进制的绝对路径，serverName 设为 weibogroup。桌面应用的 PATH 可能与终端不同。DSH 工具显示为 `mcp__weibogroup__weibo_listGroups` 等名称。

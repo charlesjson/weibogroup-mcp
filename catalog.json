@@ -132,7 +132,7 @@
     "tool": {
       "name": "listAccounts",
       "title": "List monitored accounts",
-      "description": "List monitored accounts\n\nReturns a stable keyset page of account identifiers and aggregate group/message counts. Reuse nextCursor unchanged.",
+      "description": "列出当前密钥可见的采集账号及其归档数量。按群名找群可直接用 weibo_listGroups。下一页将 nextCursor 原样传给 cursor。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -454,7 +454,7 @@
     "tool": {
       "name": "listGroups",
       "title": "List groups with message coverage and crawl gap status",
-      "description": "List groups with message coverage and crawl gap status\n\nStart group discovery here: use q to find a group by name across all owned accounts in one request; each result includes accountId/groupId, so listAccounts is not required first. Use hasOpenGap/openGapCount before completeness-sensitive summaries.",
+      "description": "按群名定位归档时先调用此工具。用 q 跨账号找群，后续查询使用同一条结果的 accountId 和 groupId。涉及完整性时检查 hasOpenGap 和 openGapCount。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -931,7 +931,7 @@
     "tool": {
       "name": "listGroupMembers",
       "title": "List a group's members",
-      "description": "List a group's members\n\nFind a member by nickname or UID using q and limit=20 before searching their messages. Returns a filtered page and matching total; do not download a full roster just to resolve one person.",
+      "description": "按昵称或 UID 查指定群的成员。先用 q 和 limit=20 定位，再用返回的 UID 筛选该成员发送的消息。遇到同名成员时核对身份。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -1519,7 +1519,7 @@
     "tool": {
       "name": "listUsers",
       "title": "List scraped user profiles",
-      "description": "List scraped user profiles\n\nSearch profiles by nickname or UID with q instead of downloading all profiles. groupId is scoped by accountId; provide both when filtering to one group.",
+      "description": "跨群按昵称或 UID 查已归档的用户资料，用 q 缩小范围。限定一个群时，同时提供 accountId 和 groupId。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -2075,7 +2075,7 @@
     "tool": {
       "name": "getUserProfile",
       "title": "Get one scraped user profile",
-      "description": "Get one scraped user profile\n\nLooks up one globally unique Weibo uid and returns 404 when no profile has been scraped.",
+      "description": "按已知 UID 读取一人的归档资料。404 表示尚未找到可见资料。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -2609,7 +2609,7 @@
     "tool": {
       "name": "getUsersBatch",
       "title": "Fetch multiple scraped user profiles in one request",
-      "description": "Fetch multiple scraped user profiles in one request\n\nReturns profiles in the requested UID order and explicitly reports UIDs without a scraped profile.",
+      "description": "已掌握多个 UID 时一次读取这些人的资料。结果按请求顺序返回，并标记缺失项。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -3438,7 +3438,7 @@
     "tool": {
       "name": "searchMessages",
       "title": "List/search messages with cursor pagination",
-      "description": "List/search messages with cursor pagination\n\nSearch archived messages after discovering accountId/groupId with listAccounts/listGroups. Check hasOpenGap before completeness-sensitive summaries. Prefer raw=0 and chronological time sorting. REST callers reuse identical filters, searchMode, sort and order with nextCursor until null when full pagination is needed; the stdio MCP adapter automatically aggregates chronological raw=0 pages up to its configured message/response budget and reports pagination.complete/truncated. Dates use the configured application timezone. semantic/hybrid first pages explicitly report whether vector search applied or fell back to lexical ranking and whether the bounded candidate window was truncated; candidate results are discovery evidence, not proof of full archive coverage.\n每次只读一页，limit 默认10、最大20。继续时把 nextCursor 原样传入 cursor，保持账号/群/日期/查询/排序/搜索模式不变；nextCursor=null 才无下一页。统计使用 getMessageTimeline。\nHarness 消息列表默认精简输出：保留完整 content、身份/时间/状态、引用锚点和附件键，省略头像、附件 metadata、重复引用树和逐条搜索摘要。detail=\"full\" 可读取完整记录；精确读取某条详情优先 getMessagesBatch(keys=[{accountId,groupId,messageId}])。分页可能因24KB预算少于请求条数，检查返回的继续参数；禁止把未读完的页当作完整证据。",
+      "description": "按账号、群、日期、发送者或表达式查消息原文。每次返回一页，默认 10 条、最多 20 条，长消息可能使本页更短。需要下一页时把 nextCursor 原样传给 cursor，保持筛选和排序一致。语义检索用来发现候选，核验引文用 weibo_getMessageContext。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -3980,7 +3980,7 @@
     "tool": {
       "name": "getMessagesBatch",
       "title": "Fetch multiple messages in one request",
-      "description": "Fetch multiple messages in one request\n\nReturns non-deleted messages in the requested key order and explicitly reports keys that were not found.",
+      "description": "按已知 accountId、groupId、messageId 组合键读取原文和详情，并报告缺失项。遇到 MESSAGE_TOO_LARGE 时，把错误中的 messageKey 放入 keys 数组，单条读取。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -4503,7 +4503,7 @@
     "tool": {
       "name": "getAssetsBatch",
       "title": "Fetch multiple attachment metadata records in one request",
-      "description": "Fetch multiple attachment metadata records in one request\n\nReturns attachment metadata in request order. Asset keys are message-scoped and must include assetType.",
+      "description": "批量读取附件元数据。键取自消息的 assets，保留所属消息和 assetType。需要看图时再用 weibo_readMessageImage。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -5034,7 +5034,7 @@
     "tool": {
       "name": "getMessageContext",
       "title": "Fetch messages around a target message",
-      "description": "Fetch messages around a target message\n\nReturns the target plus bounded older/newer context in chronological order; use this to verify citations.\nbefore/after 控制目标前后的总窗口（默认各5），pageSize 默认10、最大20。首次省略 pageCursor；继续时把 nextPageCursor 传入 pageCursor，保持 accountId/groupId/messageId/before/after/raw/detail 不变。nextPageCursor=null 表示该窗口结束，不代表全部群历史。各页按时间正序；targetIncluded=false 时目标原文尚未在本页返回，不得据此核验引文。游标过期应从第一页重新读取。\nHarness 消息列表默认精简输出：保留完整 content、身份/时间/状态、引用锚点和附件键，省略头像、附件 metadata、重复引用树和逐条搜索摘要。detail=\"full\" 可读取完整记录；精确读取某条详情优先 getMessagesBatch(keys=[{accountId,groupId,messageId}])。分页可能因24KB预算少于请求条数，检查返回的继续参数；禁止把未读完的页当作完整证据。",
+      "description": "核验一条引文及其前后文。before、after 定义总窗口，默认各 5 条。pageSize 控制本页大小。将 nextPageCursor 传给 pageCursor 并保持窗口参数一致，直到 pagination.targetIncluded 为真才可核验目标。遇 CONTEXT_PAGE_STALE 从首页重读。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -5546,7 +5546,7 @@
     "tool": {
       "name": "getMessageWindow",
       "title": "Fetch older or newer messages relative to a message ID",
-      "description": "Fetch older or newer messages relative to a message ID\n\nbeforeMessageId and afterMessageId are message IDs, not an opaque nextCursor, and are mutually exclusive. The anchor message itself is not returned; omit both anchors for the latest window.\nlimit 默认10、最大20。beforeMessageId/afterMessageId 互斥，都是消息ID，不能填搜索或上下文游标。继续向旧翻页，使用 pagination.continuation 的首条消息ID；向新翻页使用末条消息ID，保持账号/群/发送者范围不变。hasMore=null 表示未知，继续取到空页才能确认该方向已读完。\nHarness 消息列表默认精简输出：保留完整 content、身份/时间/状态、引用锚点和附件键，省略头像、附件 metadata、重复引用树和逐条搜索摘要。detail=\"full\" 可读取完整记录；精确读取某条详情优先 getMessagesBatch(keys=[{accountId,groupId,messageId}])。分页可能因24KB预算少于请求条数，检查返回的继续参数；禁止把未读完的页当作完整证据。",
+      "description": "从消息 ID 向前或向后浏览原文。省略锚点读取最新窗口，指定方向时只传 beforeMessageId 或 afterMessageId。锚点本身不在结果中。继续翻页直接使用 pagination.continuation；hasMore 为 null 表示尚待确认。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -5714,7 +5714,7 @@
     "tool": {
       "name": "findFirstMessageInRange",
       "title": "Find the first message in a date range",
-      "description": "Find the first message in a date range\n\nReturns the chronologically earliest matching message ID, or null when the account/group has no message in the range.",
+      "description": "查指定账号和群在给定日期范围内最早一条归档消息的 ID，用来定位时间边界。空结果表示该范围内未找到可见记录。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -5851,7 +5851,7 @@
     "tool": {
       "name": "getMessageTimeline",
       "title": "Message volume timeline with the same filters as message search",
-      "description": "Message volume timeline with the same filters as message search\n\nCounts matching non-deleted messages in chronological calendar buckets using the configured application timezone.",
+      "description": "统计按日、月等周期分桶的消息量或趋势。按需限定日期、发送者和 q 表达式。汇总数量优先使用本工具，可省去逐页读取消息。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -5975,7 +5975,7 @@
     "tool": {
       "name": "getPlatformStats",
       "title": "Aggregate platform stats",
-      "description": "Aggregate platform stats\n\nReturns archive totals across the authenticated Token owner's monitored accounts; this operation accepts no filters.",
+      "description": "查看当前密钥所属账号范围内的归档总览。本工具无筛选参数，单群或日期趋势请用 weibo_getMessageTimeline。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -6121,7 +6121,7 @@
     "tool": {
       "name": "listUserMessageStats",
       "title": "Per-user message counts",
-      "description": "Per-user message counts\n\nCounts non-deleted, non-system messages with a known sender UID in every date mode. Returns a ranked sender-count page for the inclusive from/to range, or all archived dates when omitted. Raw message timelines/exports can include system messages and unknown senders; align filters before comparing totals. Use this for questions such as who spoke most last week instead of one timeline query per member.",
+      "description": "查询发言排行。可限定 from、to；统计已知 UID 的非系统发言，适合回答某段时间谁最活跃。用 offset 继续读取排名。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -6313,7 +6313,7 @@
     "tool": {
       "name": "getKeywordStats",
       "title": "Keyword hit counts over time",
-      "description": "Keyword hit counts over time\n\nCounts literal, case-sensitive content matches, optionally restricted to inclusive from/to dates. Omitted dates cover the full visible archive. For Boolean expressions or sender filters, use getMessageTimeline instead.",
+      "description": "统计区分大小写的字面关键词在指定日期内的命中趋势。组合表达式或指定发送者的计数使用 weibo_getMessageTimeline。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -6483,7 +6483,7 @@
     "tool": {
       "name": "getWordCloud",
       "title": "Top words in a group",
-      "description": "Top words in a group\n\nReturns frequency results plus explicit sample-size and truncation metadata.",
+      "description": "查看群内高频词，可限定发送者和日期。解释结果时注明样本量及是否截断。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -6806,7 +6806,7 @@
     "tool": {
       "name": "createMessageExport",
       "title": "Create an archive message export",
-      "description": "Create an archive message export\n\nReuse the background export queue to generate CSV, XLSX or JSON from an owned account/group and optional senderUid/dates/keywords. Requires api:write. Returns immediately; poll getExportJob until ready or failed, then download the artifact. This creates a file and never sends or changes archived messages. Check result.truncated before claiming full coverage.",
+      "description": "按账号、群、日期和可选发送者创建 CSV、XLSX 或 JSON 导出任务。keyword 接受用逗号、分号或换行分隔的字面词。返回后以 job.id 查 weibo_getExportJob。请求结果不明时先查已有任务。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -7264,7 +7264,7 @@
     "tool": {
       "name": "createUserExport",
       "title": "Create a sender PDF or ZIP export",
-      "description": "Create a sender PDF or ZIP export\n\nGenerate a sender PDF or Markdown/images ZIP through the existing owner-scoped background renderer. This personal-reading export uses the admin renderer's rules to omit recognized system/platform notices; use CSV/XLSX/JSON message export for raw message-kind records. Requires api:write. Use discovered accountId/groupId/senderUid and dates. Poll getExportJob, then download; inspect truncated and failedAssetCount. It never sends messages or changes the archive.",
+      "description": "为指定成员创建个人阅读版 PDF 或 Markdown 加图片的 ZIP。使用已核验的 accountId、groupId、senderUid，按后台规则过滤系统提示。用返回的任务 ID 跟踪进度。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -7667,7 +7667,7 @@
     "tool": {
       "name": "listExportJobs",
       "title": "List owned export jobs",
-      "description": "List owned export jobs\n\nLists the signed-in Token owner's unexpired jobs from the shared admin/API export queue. A user can see their UI-created and API-created jobs here; never retry an uncertain create blindly.",
+      "description": "列出本用户尚未过期的导出任务，包括后台网页创建的任务。创建结果不明时先在此核对，避免重复导出。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -8025,7 +8025,7 @@
     "tool": {
       "name": "getExportJob",
       "title": "Get owned export status and file metadata",
-      "description": "Get owned export status and file metadata\n\nPoll a returned job ID until ready or failed, with a short delay between requests. ready includes filename, contentType, size and coverage metadata. finishedAt/expiresAt use milliseconds. Foreign, unknown and expired jobs return 404.",
+      "description": "查询导出任务状态。queued 或 running 时稍后以同一 ID 重查，failed 时读取 errorCode，ready 后调用 weibo_downloadExport。用 result.truncated 和 failedAssetCount 说明覆盖情况。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -8332,7 +8332,7 @@
     "tool": {
       "name": "listNotificationTargets",
       "title": "Discover owned notification targets",
-      "description": "Discover owned notification targets\n\nLists existing owned Telegram/Discord targets without Bot credentials. Discover IDs before creating a monitor rule. enabled reflects the target switch; it is not a guarantee of channel health.",
+      "description": "查找已有 Telegram 或 Discord 投递目标，取其 platform 和目标 ID 配置监控。enabled 仅表示目标开关。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -8704,7 +8704,7 @@
     "tool": {
       "name": "listMonitorRules",
       "title": "List owned keyword and sender monitors",
-      "description": "List owned keyword and sender monitors\n\nLists the same rules and destinations used by the management UI. Keywords are ORed, sender UIDs are ORed, and these two sets are ANDed. Read full destinations before editing shared rules.",
+      "description": "查已有监控规则，按平台、名称或启用状态筛选。创建结果不明时先查列表。编辑前用 weibo_getMonitorRule 读取完整路由。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -9186,7 +9186,7 @@
     "tool": {
       "name": "createMonitorRule",
       "title": "Create a keyword or sender monitor",
-      "description": "Create a keyword or sender monitor\n\nCreates a rule in the existing background matcher and notification queue. Requires api:write. Set platform and discover owned target IDs. Supply keywords, sender UIDs or both. enabled defaults to true. Enabled rules may send future matching notifications. Existing history is not replayed. No archive messages are changed. Do not blindly retry an uncertain create; query rules first.",
+      "description": "创建监控。先查实际投递目标，再填关键词、发送者或两者。每类内部取 OR，两类之间取 AND。只监控一个群时同时限定账号和群。默认启用，后续命中可能触发通知；既有历史不会自动重放。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -9709,7 +9709,7 @@
     "tool": {
       "name": "getMonitorRule",
       "title": "Get an owned monitor and all delivery routes",
-      "description": "Get an owned monitor and all delivery routes\n\nReturns the current rule, filters, hit-row count and every route. Foreign and unknown IDs return 404. Timestamp fields use epoch seconds.",
+      "description": "按规则 ID 查看筛选条件、命中计数及所有 destinations。用于核对监控范围，或在修改路由前保留其他目的地。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -10134,7 +10134,7 @@
     "tool": {
       "name": "updateMonitorRule",
       "title": "Update or pause an owned monitor",
-      "description": "Update or pause an owned monitor\n\nUpdates only supplied fields. Requires api:write. enabled=false stops new matches after the existing matcher cache refresh (about 10 seconds); already queued or delivering notifications continue under current backend behavior. Destination lists replace all routes, so fetch the rule first. A shared rule change affects every destination.",
+      "description": "修改指定字段，暂停用 enabled=false。传 destinations 会替换整组路由，先读取现有规则并保留其余目标。暂停通常约 10 秒后生效，已排队通知仍可能送达。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -10494,7 +10494,7 @@
     "tool": {
       "name": "deleteMonitorRule",
       "title": "Delete an owned monitor",
-      "description": "Delete an owned monitor\n\nPermanently deletes this rule, its destinations and historical hit records using existing backend behavior. Push jobs are retained with rule/destination references cleared; already queued notifications can still deliver. Archived messages are preserved. Prefer enabled=false to retain rule history. Requires api:write; delete only when the user explicitly requests deletion.",
+      "description": "仅在用户明确要求删除时调用。永久删除规则、路由及命中历史，已排队投递仍可能送达。用户只要求暂停时调用 weibo_updateMonitorRule 并设置 enabled=false。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -10670,7 +10670,7 @@
     "tool": {
       "name": "listMonitorRuleHits",
       "title": "List an owned monitor’s stored keyword hits",
-      "description": "List an owned monitor’s stored keyword hits\n\nReturns existing rule/message/keyword hit records. One message matching two keywords has two rows; hits do not mean notifications were delivered. Message IDs can be passed to getMessagesBatch for original text. History missing from the matcher is not inferred as zero matches.",
+      "description": "查某条规则匹配过哪些消息。同一消息命中两个关键词会计两行。需要核验原文时用 weibo_getMessagesBatch，需要核验送达时查规则投递任务。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -10964,7 +10964,7 @@
     "tool": {
       "name": "listMonitorRulePushJobs",
       "title": "List delivery outcomes for an owned monitor",
-      "description": "List delivery outcomes for an owned monitor\n\nLists recent queued/sending/delivering/sent/failed/dead/cancelled notification jobs for this rule. No jobs does not establish that no messages matched: silent hours and rate limits can suppress a push before job creation. Raw provider errors and credentials are excluded.",
+      "description": "查一条规则的通知任务及投递结果。排查漏推时结合命中记录、静默时段和限频；这些条件可在入队前抑制通知。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -11380,7 +11380,7 @@
     "tool": {
       "name": "listHistoryJobs",
       "title": "List owned crawl tasks",
-      "description": "List owned crawl tasks\n\nExisting collector queue, ordered newest first. Query by account and group together for one group; status and jobKind are optional. Page is a live view. No payloads, leases or raw errors are returned.",
+      "description": "查历史采集任务，可按账号与群、状态、任务类型筛选。按 pagination.nextOffset 翻页。列表会随新任务实时变化。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -11890,7 +11890,7 @@
     "tool": {
       "name": "createHistoryJob",
       "title": "Queue a bounded crawl of older messages",
-      "description": "Queue a bounded crawl of older messages\n\nRequires api:write. Reuses the existing collector queue and rate governor. Discover accountId/groupId first. count is per upstream page, pages is 1–5; this does not support exact from/to date stops. An existing active task can be returned unchanged. Poll the returned ID; do not repeatedly create tasks.",
+      "description": "按页数抓取指定群较早的消息。count 是每页条数，pages 取 1 至 5。可能复用活动任务，后续跟踪实际返回的 ID。此工具没有按日期停止的参数。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -12339,7 +12339,7 @@
     "tool": {
       "name": "getHistoryJob",
       "title": "Read owned crawl progress and completion reason",
-      "description": "Read owned crawl progress and completion reason\n\nsavedCount counts inserts/updates, not necessarily unique new archive messages. exhausted/target-reached/page-limit/duration/source-exhausted are different completion reasons; source-exhausted can leave a gap open. Timestamps are epoch seconds.",
+      "description": "按任务 ID 查进度与结束原因。savedCount 包括插入和更新。判断指定日期是否已覆盖时，再查询该范围的归档消息。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -12775,7 +12775,7 @@
     "tool": {
       "name": "getActiveHistoryJob",
       "title": "Find an owned group’s active crawl task",
-      "description": "Find an owned group’s active crawl task\n\nReturns the existing primary active task or null, as in the UI. Use listHistoryJobs for all kinds and paused tasks; no active job is not proof that collection is healthy.",
+      "description": "查指定群当前主要采集任务。查暂停任务和其他任务类型用 weibo_listHistoryJobs；判断最近采集是否正常用 weibo_getGroupCollectionStatus。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -13236,7 +13236,7 @@
     "tool": {
       "name": "createHistoryBackfill",
       "title": "Queue an owned group’s longer history backfill",
-      "description": "Queue an owned group’s longer history backfill\n\nRequires api:write. Continues backwards using the existing collector and saved cursor. Default duration is 30 minutes; explicit durationMinutes=0 walks until exhausted or canceled. It does not accept exact date boundaries. Reuses an existing active backfill when present; inspect returned parameters. Starting this does not replay keyword notifications from old archive rows.",
+      "description": "沿已有游标长时间向前回填。默认 30 分钟，仅在用户明确要求抓完整段历史时使用 durationMinutes=0。可能复用活动任务，应核对返回的 ID 和参数。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -13691,7 +13691,7 @@
     "tool": {
       "name": "pauseHistoryJob",
       "title": "Pause an owned queued or running crawl task",
-      "description": "Pause an owned queued or running crawl task\n\nPause preserves the task/cursor; a current page may finish. Refresh after a 409 state conflict. Requires api:write. Never deletes archived messages.",
+      "description": "暂停排队中或正在运行的采集任务并保留游标。当前页可能先完成；遇到 409 时重新查询任务状态。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -14118,7 +14118,7 @@
     "tool": {
       "name": "resumeHistoryJob",
       "title": "Resume an owned paused crawl task",
-      "description": "Resume an owned paused crawl task\n\nOnly paused tasks can resume. The existing collector continues from the saved cursor. Requires api:write. Never deletes archived messages.",
+      "description": "从保存的游标恢复 paused 状态的采集任务。先核对任务 ID 和状态。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -14545,7 +14545,7 @@
     "tool": {
       "name": "cancelHistoryJob",
       "title": "Cancel an owned crawl task",
-      "description": "Cancel an owned crawl task\n\nCancellation is asynchronous for running tasks; poll until canceled. A current page can finish. Prefer pause if the same task should continue later. Requires api:write. Never deletes archived messages.",
+      "description": "取消指定任务。正在运行的任务可能先完成当前页，用 weibo_getHistoryJob 确认最终状态。用户打算以后继续时使用暂停。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -14972,7 +14972,7 @@
     "tool": {
       "name": "retryHistoryJob",
       "title": "Retry an owned failed crawl task",
-      "description": "Retry an owned failed crawl task\n\nOnly failed tasks can retry. The backend creates a replacement task with a new ID and retryOfJobId; follow the returned ID. An already active replacement produces a conflict. Requires api:write. Never deletes archived messages.",
+      "description": "重试 failed 状态的任务。后台创建替代任务，通过返回的新 ID 跟踪，并用 retryOfJobId 核对来源。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -15404,7 +15404,7 @@
     "tool": {
       "name": "requestGroupProfileSync",
       "title": "Queue owned group member profile refresh",
-      "description": "Queue owned group member profile refresh\n\nRequires api:write. Uses the same profile-sync queue as the UI; returns an existing active task or queues a refresh. This updates member profiles and does not post Weibo messages.",
+      "description": "为指定账号和群排队刷新成员资料。后台可能返回已有的活动任务。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -15824,7 +15824,7 @@
     "tool": {
       "name": "getCrawlerStatus",
       "title": "Inspect owned collector health, queues and recent activity",
-      "description": "Inspect owned collector health, queues and recent activity\n\nOwner-scoped heartbeat, session, lease-presence, queue and last successful poll/realtime timestamps. online only means a fresh worker heartbeat; inspect session, breaker and last-success fields together. No worker identities, cookies or raw errors. Returned now and all timestamps use epoch seconds.",
+      "description": "检查采集账号的心跳、登录状态、熔断、队列和最近成功轮询。online 只表示心跳新鲜。指定群缺少新消息时，继续查该群采集状态。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -16356,7 +16356,7 @@
     "tool": {
       "name": "getGroupCollectionStatus",
       "title": "Inspect owned group crawl cursors and known gaps",
-      "description": "Inspect owned group crawl cursors and known gaps\n\nKnown crawl gaps, last poll/history timestamps and active task. No known gap is not proof that the archive includes all history. Shows at most 100 gap records with an explicit total/truncation flag. Query messages separately to verify requested dates.",
+      "description": "排查指定群的归档缺口、采集游标、最近轮询和活动任务。结合实际日期范围核验覆盖情况，并检查缺口列表是否截断。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -16853,7 +16853,7 @@
     "tool": {
       "name": "listNotificationChannels",
       "title": "Inspect owned notification channel configuration and poller health",
-      "description": "Inspect owned notification channel configuration and poller health\n\nRead-only, no Bot tokens, proxy credentials, URLs or provider errors. Telegram pollerState describes command polling, not whether outbound pushes work. Discord gateway health is unknown here. A missing heartbeat or configured credential is not a provider connectivity test. No test notifications are sent.",
+      "description": "查看通知渠道配置与 Telegram 命令轮询状态。核验推送是否送达要查投递任务。按渠道过滤统计时需同时提供 platform 和 channelId。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -17216,7 +17216,7 @@
     "tool": {
       "name": "getNotificationStats",
       "title": "Inspect owned notification hit and delivery totals",
-      "description": "Inspect owned notification hit and delivery totals\n\nSame rule/target statistics as the management UI, scoped to the token owner. Time filters apply to hit/job creation times, not original message time or failure time. Default last 24 hours, at most 31 days. hitCount is stored rule/message/keyword rows, not unique messages; sentCount/pushCount are notification jobs and successRate is null with no jobs. Queued/in-progress jobs can lower the observed ratio. No job is not proof of no match: quiet hours, throttles and disabled destinations can suppress enqueueing. Channels are capped at 100; narrow by platform/channelId if truncated.",
+      "description": "汇总命中与投递。from、to 是任务或命中创建时间的 Unix 秒，默认最近 24 小时，最多 31 天。hitCount 按命中行计数，无投递任务时 successRate 为 null。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -17630,7 +17630,7 @@
     "tool": {
       "name": "listNotificationPushJobs",
       "title": "Inspect recent owned notification delivery outcomes",
-      "description": "Inspect recent owned notification delivery outcomes\n\nTime filters apply to job creation time, not failure time. Default last 24 hours, maximum 31 days, scoped by owner and optional platform/channelId/status. Returns fixed failure categories inferred from server-side errors, never original errors, claims, payloads or credentials. A null category is unknown, not proof of health; a category is a diagnostic hint, not a confirmed root cause. Use monitor-rule hits/routes to distinguish matching, suppression and actual delivery. Paginate explicitly.",
+      "description": "排查跨规则的投递结果，按平台、渠道或状态分页查任务。from、to 使用创建时间的 Unix 秒，默认 24 小时，最多 31 天。失败分类只提供排查方向。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -17863,7 +17863,7 @@
   {
     "tool": {
       "name": "readMessageImage",
-      "description": "Read one archived picture as MCP image content using the exact identifiers from its message assets.",
+      "description": "读取一张归档图片供视觉模型查看。从同一条消息的 assets 复制资源标识，imageIndex 从 0 起。preview 表示缩略图，描述以返回的图片内容为准。",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -17927,7 +17927,7 @@
   {
     "tool": {
       "name": "downloadExport",
-      "description": "Save a ready export to a new local file. Returns path, bytes and coverage.",
+      "description": "把 ready 状态的导出保存为本机文件，单文件上限 64 MiB。传任务 id，向用户交付返回的 path。coverage 为 null 表示旧任务的覆盖情况未知。",
       "inputSchema": {
         "type": "object",
         "required": [

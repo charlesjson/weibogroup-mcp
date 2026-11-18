@@ -1,4 +1,5 @@
 // Run against a built checkout of charlesjson/dsh-weibogroup v0.6.3.
+import descriptions from './tool-descriptions.json' with { type: 'json' }
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { writeFile } from 'node:fs/promises'
@@ -15,4 +16,9 @@ operations.push({
 }, {
   tool: { name: 'downloadExport', description: 'Save a ready export to a new local file. Returns path, bytes and coverage.', inputSchema: { type: 'object', required: ['id'], additionalProperties: false, properties: { id: { type: 'string', format: 'uuid' } } }, annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false } },
 })
+for (const { tool } of operations) {
+  const description = descriptions[tool.name]
+  if (!description) throw new Error('Missing MCP guidance for ' + tool.name)
+  tool.description = description
+}
 await writeFile(new URL('../catalog.json', import.meta.url), JSON.stringify(operations, null, 2) + '\n')
